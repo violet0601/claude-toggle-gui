@@ -16,12 +16,14 @@ MARKETPLACE = CLAUDE_BASE / "plugins" / "marketplaces" / "claude-plugins-officia
 
 GROUPS = [
     ("Skills", CLAUDE_BASE / "skills", CLAUDE_BASE / "skills-disabled"),
+    ("Codex Skills", CODEX_BASE / "skills", CODEX_BASE / "skills-disabled"),
     ("Plugins", MARKETPLACE / "plugins", MARKETPLACE / "plugins-disabled"),
     ("MCP Tools", MARKETPLACE / "external_plugins", MARKETPLACE / "external_plugins-disabled"),
 ]
 
 # (label, config_path, config_type)
 MCP_SOURCES = [
+    ("Claude JSON", HOME / ".claude.json", "json"),
     ("Codex TOML", CODEX_BASE / "config.toml", "toml"),
     ("User Settings", CLAUDE_BASE / "settings.json", "json"),
     ("User .mcp.json", HOME / ".mcp.json", "json"),
@@ -78,7 +80,7 @@ def _load_json_mcp(content, config_path, scope, servers):
         if key in data and isinstance(data[key], dict):
             for name, cfg in data[key].items():
                 if isinstance(cfg, dict):
-                    servers[name] = {
+                    servers[f"{scope}|{name}"] = {
                         "name": name,
                         "config": cfg,
                         "source": config_path,
@@ -96,7 +98,7 @@ def _load_toml_mcp(content, config_path, scope, servers):
     for name, cfg in mcp_servers.items():
         if isinstance(cfg, dict):
             enabled = cfg.get("enabled", True)
-            servers[name] = {
+            servers[f"{scope}|{name}"] = {
                 "name": name,
                 "config": cfg,
                 "source": config_path,
@@ -304,17 +306,18 @@ class ToggleApp:
             tk.Label(row, text=desc, bg="#1e1e1e", fg="#666666",
                      font=("Microsoft YaHei UI", 9), anchor=tk.W).pack(side=tk.LEFT, padx=8)
 
-    def _add_mcp_row(self, name):
-        info = self.mcp_servers[name]
+    def _add_mcp_row(self, mcp_key):
+        info = self.mcp_servers[mcp_key]
         enabled = info["enabled"]
         cfg = info["config"]
         scope = info["scope"]
+        name = info["name"]
 
         cmd = cfg.get("command", "")
         mcp_type = cfg.get("type", "stdio")
         desc = f"{mcp_type}: {Path(cmd).name}" if cmd else mcp_type
 
-        key = f"User MCP|{name}"
+        key = f"User MCP|{mcp_key}"
         var = tk.BooleanVar(value=enabled)
         self.vars[key] = (var, info)
 
